@@ -1,6 +1,6 @@
 BTBlurredView
 =============
-This is a view for you to either subclass or use as-is. The view comes loaded with the ability to:
+This is a view for you to either subclass or use as-is. The view comes loaded with the ability to:  
 	1. Generate screen grab (ignoring itself)  
 	2. Blur the image - This is lifted from Apple's example  
 	3. Fake a live blur by scrolling the image in the opporsite direction of the motion  
