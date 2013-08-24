@@ -59,6 +59,6 @@ typedef enum {
 
 
 @protocol BTBlurredViewDelegate <NSObject>
-
+@optional
 - (UIImage *)blurImageForBlurredView:(BTBlurredView *)blurredView image:(UIImage *)image;
 @end

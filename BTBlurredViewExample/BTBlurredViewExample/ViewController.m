@@ -14,17 +14,14 @@
 @end
 
 @implementation ViewController{
-    BTBlurredView *_blurredView;
-    
-    BOOL viewIsStatic;
+    BTBlurredView *_staticBlurredView;
+    BTBlurredView *_scrollingBlurredView;
 }
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
     self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
     if (self) {
-        //turn this off to test effect of using it as live view
-        viewIsStatic = NO;
     }
     return self;
 }
@@ -37,42 +34,39 @@
     CGFloat viewWidth = self.view.frame.size.width/3;
     CGFloat viewHeight = self.view.frame.size.height/4;
     
+    //Simple implementation
+    if (YES) {
+        _staticBlurredView = [[BTBlurredView alloc] init];
+        [_staticBlurredView setFrame:CGRectMake(viewWidth/2, viewHeight/2, viewWidth, viewHeight)];
+        [self.view addSubview:_staticBlurredView];
+        //YES IT IS THAT SIMPLE!!
+    }
     
-    if (viewIsStatic) {
-        //Normal circumstance
-        _blurredView = [[BTBlurredView alloc] init];
-        [_blurredView setFrame:CGRectMake(viewWidth/2, viewHeight/2, viewWidth, viewHeight)];
-        [_blurredView setDelegate:self];
-        [self.view addSubview:_blurredView];
-    }else{
-        
-        UIView *someView = [[UIView alloc] initWithFrame:CGRectMake(30, 20, 50, 60)];
-        someView.backgroundColor = [UIColor blueColor];
-        [someView.layer setCornerRadius:5];
-        [self.view  addSubview:someView];
-        
-        UIView *someView2 = [[UIView alloc] initWithFrame:CGRectMake(90, 60, 70, 40)];
-        someView2.backgroundColor = [UIColor whiteColor];
-        [someView2.layer setCornerRadius:5];
-        [self.view  addSubview:someView2];
-        
+    //BlurView On scrollView
+    if (YES) {
         UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:self.view.frame];
         [scrollView setDelegate:self];
         [scrollView setContentSize:self.view.frame.size];
-        [scrollView setContentInset:UIEdgeInsetsMake(self.view.frame.size.height - viewHeight, self.view.frame.size.width - viewWidth + 1000, 0, 0)];
+        [scrollView setContentInset:UIEdgeInsetsMake(self.view.frame.size.height - viewHeight, self.view.frame.size.width - viewWidth, 0, 0)];
         [scrollView setShowsHorizontalScrollIndicator:NO];
         [scrollView setShowsVerticalScrollIndicator:NO];
         [self.view addSubview:scrollView];
         
-        _blurredView = [[BTBlurredView alloc] init];
-        [_blurredView setDelegate:self];
-        [_blurredView.layer setCornerRadius:5];
-        [_blurredView setFrame:CGRectMake(0, 0, viewWidth, viewHeight)];
-        [_blurredView setBackgroundView:self.view];
-        [_blurredView setClipsToBounds:YES];
-        [_blurredView setShouldUseExperimentOptimization:YES];
-        [scrollView addSubview:_blurredView];
-    }	
+        
+        _scrollingBlurredView = [[BTBlurredView alloc] initWithFrame:CGRectMake(0, 0, viewWidth, viewHeight)];
+        //since this the scrollview is not the background view, explicitly set the background view
+        [_scrollingBlurredView setBackgroundView:self.view];
+        //only set it to YES if your view is surely moving in and out of the screen a lot
+        
+        [_scrollingBlurredView setShouldUseExperimentOptimization:YES];
+    
+        [scrollView addSubview:_scrollingBlurredView];
+        //delegate is optional, can call on-the-fly different blur
+        [_scrollingBlurredView setDelegate:self];
+
+        //can set up listener
+        [_scrollingBlurredView setShouldObserveScroll:YES];
+    }
 }
 
 - (void)didReceiveMemoryWarning
@@ -83,11 +77,16 @@
 
 - (void)viewDidAppear:(BOOL)animated
 {
+    // this is an example of animating the static blurred view, without the use of scrollView
+    // you will see that the fake live blur has its limitation when this is happening
     double delayInSeconds = 2.0;
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-        [UIView animateWithDuration:2 animations:^{
-            _blurredView.frame = CGRectOffset(_blurredView.frame, 200, 200);
+        [UIView animateWithDuration:.5 animations:^{
+            _staticBlurredView.frame = CGRectOffset(_staticBlurredView.frame, 200, 200);
+        } completion:^(BOOL finished) {
+            //remembers that the background of other view is not live, you need to refresh
+            [_scrollingBlurredView refreshBackground];
         }];
     });
 }
@@ -96,14 +95,23 @@
 #pragma mark UIScrollView
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView
 {
+    //there are 2 ways to do this,
+    BOOL withObserverWay = NO;
+    if (withObserverWay) {
+        //this will hit all the scrollViews that enables it, use this when you have many blurredView in one scrollview.
+        [[NSNotificationCenter defaultCenter] postNotificationName:PARENT_SCROLL_NOTIFICATION object:scrollView];
+    }else{
+        //this works individually
+        [_scrollingBlurredView viewDidMoveToPointOffset:scrollView.contentOffset];
+    }
+    
     //calculate relative frame
-    [_blurredView viewDidMoveToPointOffset:scrollView.contentOffset];
 }
 
 #pragma mark BTBlurredView
 - (UIImage *)blurImageForBlurredView:(BTBlurredView *)blurredView image:(UIImage *)image
 {
     //if you like to mess around with the effect, can be done on the fly, or inside the view itself
-    return [image applyLightEffect];
+    return [image applyBlurWithRadius:3 tintColor:[UIColor colorWithWhite:1.0 alpha:0.4] saturationDeltaFactor:1 maskImage:nil];[image applyLightEffect];
 }
 @end

@@ -30,7 +30,8 @@
         _backgroundView = self.superview;
     }
     if (CGPointEqualToPoint(CGPointZero, _relativeOrigin)) {
-        _relativeOrigin = [self reversePoint:[self combinePoint:self.frame.origin withPoint:self.superview.frame.origin]];
+        [self resetRelativeOrigin];
+        //_relativeOrigin = [self reversePoint:[self combinePoint:self.frame.origin withPoint:self.superview.frame.origin]];
     }
 
     _dynamicBackgroundScrollView = [[UIScrollView alloc] initWithFrame:self.bounds];
@@ -145,7 +146,13 @@
     [super setFrame:frame];
     //scroll background accordingly
     [self resetRelativeOrigin];
-    CGPoint pointOffset = [self combinePoint:_dynamicBackgroundScrollView.contentOffset withPoint:[self reversePoint:_relativeOrigin]];
+    
+    //since scrollables will have to keep track of its superview offset
+    CGPoint pointOffset = [self reversePoint:_relativeOrigin];
+    if ([self.superview isKindOfClass:[UIScrollView class]]) {
+        UIScrollView *superScrollView = (UIScrollView *)self.superview;
+        pointOffset = [self combinePoint:[self reversePoint:superScrollView.contentOffset] withPoint:pointOffset];
+    }
     [_dynamicBackgroundScrollView setContentOffset:pointOffset];
 
 }
