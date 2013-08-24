@@ -59,7 +59,7 @@
         UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:self.view.frame];
         [scrollView setDelegate:self];
         [scrollView setContentSize:self.view.frame.size];
-        [scrollView setContentInset:UIEdgeInsetsMake(self.view.frame.size.height - viewHeight, self.view.frame.size.width - viewWidth, 0, 0)];
+        [scrollView setContentInset:UIEdgeInsetsMake(self.view.frame.size.height - viewHeight, self.view.frame.size.width - viewWidth + 1000, 0, 0)];
         [scrollView setShowsHorizontalScrollIndicator:NO];
         [scrollView setShowsVerticalScrollIndicator:NO];
         [self.view addSubview:scrollView];
@@ -70,6 +70,7 @@
         [_blurredView setFrame:CGRectMake(0, 0, viewWidth, viewHeight)];
         [_blurredView setBackgroundView:self.view];
         [_blurredView setClipsToBounds:YES];
+        [_blurredView setShouldUseExperimentOptimization:YES];
         [scrollView addSubview:_blurredView];
     }	
 }

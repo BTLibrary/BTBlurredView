@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>D8C642F7-D094-49DE-9790-B5D76730D5AC</string>
+	<key>IDESourceControlProjectName</key>
+	<string>BTBlurredViewExample</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>C98F9EF1-3315-42D9-B02D-F671C8AAE273</key>
+		<string>https://github.com/BTLibrary/BTBlurredView.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>BTBlurredViewExample/BTBlurredViewExample.xcodeproj/project.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>C98F9EF1-3315-42D9-B02D-F671C8AAE273</key>
+		<string>../../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>https://github.com/BTLibrary/BTBlurredView.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>110</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>C98F9EF1-3315-42D9-B02D-F671C8AAE273</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>C98F9EF1-3315-42D9-B02D-F671C8AAE273</string>
+			<key>IDESourceControlWCCName</key>
+			<string>BTBlurredView</string>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -10,13 +10,15 @@
 
 @implementation BTBlurredView
 
-- (id)initWithFrame:(CGRect)frame backgroundView:(UIView *)backgroundView relativeFrame:(CGRect)relativeFrame
+- (id)initWithFrame:(CGRect)frame backgroundView:(UIView *)backgroundView relativeOrigin:(CGPoint)relativeOrigin
 {
     self = [super initWithFrame:frame];
     if (self) {
         // Initialization code
         _backgroundView = backgroundView;
-        _relativeFrame = relativeFrame;
+        _relativeOrigin = relativeOrigin;
+        _shouldObserveScroll = NO;
+        _shouldUseExperimentOptimization = NO;
     }
     return self;
 }
@@ -27,21 +29,40 @@
     if (!_backgroundView) {
         _backgroundView = self.superview;
     }
-    if (CGRectEqualToRect(_relativeFrame, CGRectZero)) {
-        _relativeFrame = self.frame;
+    if (CGPointEqualToPoint(CGPointZero, _relativeOrigin)) {
+        _relativeOrigin = [self reversePoint:[self combinePoint:self.frame.origin withPoint:self.superview.frame.origin]];
     }
 
     _dynamicBackgroundScrollView = [[UIScrollView alloc] initWithFrame:self.bounds];
     [_dynamicBackgroundScrollView setContentInset:UIEdgeInsetsMake(_backgroundView.frame.size.height - self.bounds.size.height, _backgroundView.frame.size.width - self.bounds.size.width, 0, 0)];
-    [_dynamicBackgroundScrollView setContentOffset:self.frame.origin];
+    [_dynamicBackgroundScrollView setContentOffset:[self reversePoint:_relativeOrigin]];
     [_dynamicBackgroundScrollView setUserInteractionEnabled:NO];
     [_dynamicBackgroundScrollView setShowsHorizontalScrollIndicator:NO];
     [_dynamicBackgroundScrollView setShowsVerticalScrollIndicator:NO];
     [self insertSubview:_dynamicBackgroundScrollView atIndex:0];
     
-    
-
     [self refreshBackground];
+}
+
+#pragma mark Background Image
+//simple refresh
+- (void)refreshBackground
+{
+    //grab background
+    UIImage *screenShotImage = [self screenShotImage];
+    
+    [self refreshBackgroundWithSpecificBackgroundImage:screenShotImage];
+}
+
+- (void)refreshBackgroundWithSpecificBackgroundImage:(UIImage *)backgroundImage
+{
+    //blur
+    backgroundImage = [self blurImage:backgroundImage];
+    
+    //set background
+    [_dynamicBackgroundScrollView setBackgroundColor:[UIColor colorWithPatternImage:backgroundImage]];
+
+    return;
 }
 
 //complex refresh the background with animation
@@ -51,8 +72,14 @@
     //grab background
     UIImage *screenShotImage = [self screenShotImage];
     
+    [self refreshBackgroundWithAnimationCode:animationCode duration:duration withSpecificBackgroundImage:screenShotImage];
+}
+
+- (void)refreshBackgroundWithAnimationCode:(AnimationCode)animationCode duration:(CGFloat)duration withSpecificBackgroundImage:(UIImage *)backgroundImage
+{
     //blur
-    screenShotImage = [self blurImage:screenShotImage];
+    backgroundImage = [self blurImage:backgroundImage];
+    
     
     //create temporary scrollview
     UIScrollView *animateBackgroundScrollview = [[UIScrollView alloc] initWithFrame:_dynamicBackgroundScrollView.frame];
@@ -61,7 +88,7 @@
     [animateBackgroundScrollview setUserInteractionEnabled:NO];
     [animateBackgroundScrollview setShowsHorizontalScrollIndicator:NO];
     [animateBackgroundScrollview setShowsVerticalScrollIndicator:NO];
-    [animateBackgroundScrollview setBackgroundColor:[UIColor colorWithPatternImage:screenShotImage]];
+    [animateBackgroundScrollview setBackgroundColor:[UIColor colorWithPatternImage:backgroundImage]];
     [self insertSubview:animateBackgroundScrollview belowSubview:_dynamicBackgroundScrollView];
     
     //can add other animation but after tinkering with it, adding more is just not going to look good
@@ -79,29 +106,33 @@
     }
 }
 
-
-//simple refresh
-- (void)refreshBackground
-{
-    //grab background
-    UIImage *screenShotImage = [self screenShotImage];
-    
-    //blur
-    screenShotImage = [self blurImage:screenShotImage];
-    
-    //set background
-    [_dynamicBackgroundScrollView setBackgroundColor:[UIColor colorWithPatternImage:screenShotImage]];
-}
-
-
+#pragma mark Movement
 
 - (void)viewDidMoveToPointOffset:(CGPoint)pointOffset
 {
-    //invert point
-    pointOffset = CGPointMake(-pointOffset.x, -pointOffset.y);
+    if (![self isViewVisibleOnScreenWithOffset:pointOffset]) {
+        return;
+    }
+    
+    //invert point and adjust relative frame
+    pointOffset = [self reversePoint:[self combinePoint:pointOffset withPoint:_relativeOrigin]];
     [_dynamicBackgroundScrollView setContentOffset:pointOffset];
 }
 
+- (void)setShouldObserveScroll:(BOOL)shouldObserveScroll
+{
+    //as to not have more than 1 observer
+    if (shouldObserveScroll == _shouldObserveScroll) {
+        return;
+    }
+    
+    _shouldObserveScroll = shouldObserveScroll;
+    if (_shouldObserveScroll) {
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(parentScrollViewDidScroll:) name:PARENT_SCROLL_NOTIFICATION object:nil];
+    }else{
+        [[NSNotificationCenter defaultCenter] removeObserver:self name:PARENT_SCROLL_NOTIFICATION object:nil];
+    }
+}
 
 #pragma mark - Internal functions
 - (UIImage *)blurImage:(UIImage *)image
@@ -130,6 +161,56 @@
     [self setAlpha:1];
     
     return image;
+}
+
+- (void)parentScrollViewDidScroll:(NSNotification *)notification
+{
+    UIScrollView *parentScrollView = notification.object;
+    [self viewDidMoveToPointOffset:parentScrollView.contentOffset];
+}
+
+- (CGPoint)combinePoint:(CGPoint)point1 withPoint:(CGPoint)point2
+{
+    return CGPointMake(point1.x + point2.x, point1.y + point2.y);
+}
+
+- (CGPoint)reversePoint:(CGPoint)point
+{
+    return CGPointMake(-point.x, -point.y);
+}
+
+//this method is crude and may not work at all times
+//it is implemented as an idea to optimize view that are not visible to not scroll
+//it has not been tested properly, initial test shows that it works
+- (BOOL)isViewVisibleOnScreenWithOffset:(CGPoint)offset
+{
+    if (!_shouldUseExperimentOptimization) {
+        //if not turned on, proceed with scroll/refresh
+        return YES;
+    }
+    
+    CGFloat originX = _relativeOrigin.x - offset.x;
+    CGFloat originY = _relativeOrigin.y - offset.y;
+    
+    //check left
+    if (originX + self.frame.size.width < 0) {
+        return NO;
+    }
+    //check top
+    if (originY + self.frame.size.height < 0) {
+        return NO;
+    }
+    //check right
+    if (originX > self.window.frame.size.width) {
+        return NO;
+    }
+    //check bottom
+    if (originY > self.window.frame.size.height) {
+        return NO;
+    }
+    
+    NSLog(@"%@",@YES);
+    return YES;
 }
 
 /*
