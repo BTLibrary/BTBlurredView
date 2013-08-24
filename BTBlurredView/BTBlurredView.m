@@ -106,8 +106,13 @@
     }
 }
 
-#pragma mark Movement
+//in case the view is reused and the frame is changed, this function is to be called
+- (void)resetRelativeOrigin
+{
+    _relativeOrigin = [self reversePoint:[self combinePoint:self.frame.origin withPoint:self.superview.frame.origin]];
+}
 
+#pragma mark Movement
 - (void)viewDidMoveToPointOffset:(CGPoint)pointOffset
 {
     if (![self isViewVisibleOnScreenWithOffset:pointOffset]) {
@@ -132,6 +137,17 @@
     }else{
         [[NSNotificationCenter defaultCenter] removeObserver:self name:PARENT_SCROLL_NOTIFICATION object:nil];
     }
+}
+
+//this overwrite allows the background to scroll even with UIView animate
+- (void)setFrame:(CGRect)frame
+{
+    [super setFrame:frame];
+    //scroll background accordingly
+    [self resetRelativeOrigin];
+    CGPoint pointOffset = [self combinePoint:_dynamicBackgroundScrollView.contentOffset withPoint:[self reversePoint:_relativeOrigin]];
+    [_dynamicBackgroundScrollView setContentOffset:pointOffset];
+
 }
 
 #pragma mark - Internal functions
@@ -188,9 +204,9 @@
         //if not turned on, proceed with scroll/refresh
         return YES;
     }
-    
-    CGFloat originX = _relativeOrigin.x - offset.x;
-    CGFloat originY = _relativeOrigin.y - offset.y;
+
+    CGFloat originX = -_relativeOrigin.x - offset.x;
+    CGFloat originY = -_relativeOrigin.y - offset.y;
     
     //check left
     if (originX + self.frame.size.width < 0) {
@@ -209,7 +225,6 @@
         return NO;
     }
     
-    NSLog(@"%@",@YES);
     return YES;
 }
 

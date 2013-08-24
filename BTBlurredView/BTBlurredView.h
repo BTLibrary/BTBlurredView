@@ -48,6 +48,9 @@ typedef enum {
 //same as above only with roll your own image
 - (void)refreshBackgroundWithAnimationCode:(AnimationCode)animationCode duration:(CGFloat)duration withSpecificBackgroundImage:(UIImage *)backgroundImage;
 
+//re calculate the relativeOrigin
+- (void)resetRelativeOrigin;
+
 //set the blur to act "live" follow motion
 - (void)viewDidMoveToPointOffset:(CGPoint)pointOffset;
 @end

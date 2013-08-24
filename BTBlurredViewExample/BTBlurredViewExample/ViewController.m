@@ -81,6 +81,17 @@
     // Dispose of any resources that can be recreated.
 }
 
+- (void)viewDidAppear:(BOOL)animated
+{
+    double delayInSeconds = 2.0;
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+        [UIView animateWithDuration:2 animations:^{
+            _blurredView.frame = CGRectOffset(_blurredView.frame, 200, 200);
+        }];
+    });
+}
+
 #pragma mark - delegate
 #pragma mark UIScrollView
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView
