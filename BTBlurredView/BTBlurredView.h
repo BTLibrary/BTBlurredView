@@ -21,12 +21,17 @@ typedef enum {
 @interface BTBlurredView : UIView
 
 //if the backgroundview is not superview, then set the backgroundview
-@property (strong, nonatomic) UIView *backgroundView;
+@property (weak, nonatomic) UIView *backgroundView;
 //since backgroundview can be something other than superview, this allows you to calibrate the background scroll to fit nicely with the real background. defualt sets this to the superview origin
 @property (assign, nonatomic) CGPoint relativeOrigin;
+//we need to make sure we keep track of the offset of the superview (scrollview)
+@property (weak, nonatomic) UIScrollView *backgroundScrollView;
 
 //background scrollview to mimic the "live" blur
 @property (strong, nonatomic) UIScrollView *dynamicBackgroundScrollView;
+
+//in case many view shares the same background, you can set this image to that background and it will not refreshes the image.
+@property (strong, nonatomic) UIImage *customBlurredBackground;
 
 //this is defualt to NO, to enable observer, just set to YES
 @property (assign, nonatomic) BOOL shouldObserveScroll;
@@ -34,6 +39,9 @@ typedef enum {
 //this property links directly to the function - isViewVisibleOnScreen
 //it is an experiment that may or may not cut cycles
 @property (assign, nonatomic) BOOL shouldUseExperimentOptimization;
+
+//to make sure that the view does not try to find scrollview
+@property (assign, nonatomic) BOOL isStaticOnly;
 
 @property (weak, nonatomic) id<BTBlurredViewDelegate> delegate;
 
@@ -53,6 +61,13 @@ typedef enum {
 
 //set the blur to act "live" follow motion
 - (void)viewDidMoveToPointOffset:(CGPoint)pointOffset;
+
+//if you ever need a screen grab for any number of reasons
+//this will captures everything and the size of the device's bound
++ (UIImage *)grabScreenFromView:(UIView *)view;
+
++ (CGPoint)combinePoint:(CGPoint)point1 withPoint:(CGPoint)point2;
++ (CGPoint)reversePoint:(CGPoint)point;
 @end
 
 

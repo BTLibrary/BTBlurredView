@@ -56,16 +56,15 @@
         _scrollingBlurredView = [[BTBlurredView alloc] initWithFrame:CGRectMake(0, 0, viewWidth, viewHeight)];
         //since this the scrollview is not the background view, explicitly set the background view
         [_scrollingBlurredView setBackgroundView:self.view];
-        //only set it to YES if your view is surely moving in and out of the screen a lot
-        
+        //only set it to YES if your view is surely moving in and out of the screen a lot (ie when use with un optimized tableview)
         [_scrollingBlurredView setShouldUseExperimentOptimization:YES];
     
-        [scrollView addSubview:_scrollingBlurredView];
         //delegate is optional, can call on-the-fly different blur
         [_scrollingBlurredView setDelegate:self];
 
         //can set up listener
         [_scrollingBlurredView setShouldObserveScroll:YES];
+        [scrollView addSubview:_scrollingBlurredView];
     }
 }
 

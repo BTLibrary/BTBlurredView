@@ -10,6 +10,22 @@
 
 @implementation BTBlurredView
 
+
+
+- (id)initWithFrame:(CGRect)frame
+{
+    self = [super initWithFrame:frame];
+    if (self) {
+        _backgroundView = nil;
+        _relativeOrigin = CGPointZero;
+        _backgroundScrollView = nil;
+        _shouldObserveScroll = NO;
+        _shouldUseExperimentOptimization = NO;
+        _isStaticOnly = NO;
+    }
+    return self;
+}
+
 - (id)initWithFrame:(CGRect)frame backgroundView:(UIView *)backgroundView relativeOrigin:(CGPoint)relativeOrigin
 {
     self = [super initWithFrame:frame];
@@ -17,8 +33,7 @@
         // Initialization code
         _backgroundView = backgroundView;
         _relativeOrigin = relativeOrigin;
-        _shouldObserveScroll = NO;
-        _shouldUseExperimentOptimization = NO;
+        
     }
     return self;
 }
@@ -27,22 +42,46 @@
 - (void)didMoveToWindow
 {
     if (!_backgroundView) {
+        //this is often wrong, and should be changed
+        //only way this is right is when the view is static and wont be moving
         _backgroundView = self.superview;
     }
     if (CGPointEqualToPoint(CGPointZero, _relativeOrigin)) {
         [self resetRelativeOrigin];
-        //_relativeOrigin = [self reversePoint:[self combinePoint:self.frame.origin withPoint:self.superview.frame.origin]];
+    }
+    if (!_backgroundScrollView && !_isStaticOnly) {
+        //if it is not static and has not been assigned, search through superview until finds scrollview or set to nil
+        UIView *parentView = self;
+        while ((parentView = parentView.superview)) {
+            if ([parentView isKindOfClass:[UIScrollView class]]) {
+                _backgroundScrollView = (UIScrollView *)parentView;
+                break;
+            }
+        }
+        //otherwise leave it nil
     }
 
-    _dynamicBackgroundScrollView = [[UIScrollView alloc] initWithFrame:self.bounds];
-    [_dynamicBackgroundScrollView setContentInset:UIEdgeInsetsMake(_backgroundView.frame.size.height - self.bounds.size.height, _backgroundView.frame.size.width - self.bounds.size.width, 0, 0)];
-    [_dynamicBackgroundScrollView setContentOffset:[self reversePoint:_relativeOrigin]];
-    [_dynamicBackgroundScrollView setUserInteractionEnabled:NO];
-    [_dynamicBackgroundScrollView setShowsHorizontalScrollIndicator:NO];
-    [_dynamicBackgroundScrollView setShowsVerticalScrollIndicator:NO];
-    [self insertSubview:_dynamicBackgroundScrollView atIndex:0];
+    if (!_dynamicBackgroundScrollView) {
+        _dynamicBackgroundScrollView = [[UIScrollView alloc] initWithFrame:self.bounds];
+        [_dynamicBackgroundScrollView setContentInset:UIEdgeInsetsMake(_backgroundView.frame.size.height - self.bounds.size.height, _backgroundView.frame.size.width - self.bounds.size.width, 0, 0)];
+        [_dynamicBackgroundScrollView setUserInteractionEnabled:NO];
+        [_dynamicBackgroundScrollView setShowsHorizontalScrollIndicator:NO];
+        [_dynamicBackgroundScrollView setShowsVerticalScrollIndicator:NO];
+        [self insertSubview:_dynamicBackgroundScrollView atIndex:0];
+    }
     
-    [self refreshBackground];
+    CGPoint pointOffset = _relativeOrigin;
+    if (_backgroundScrollView) {
+        pointOffset = [BTBlurredView combinePoint:[BTBlurredView reversePoint:_backgroundScrollView.contentOffset] withPoint:_relativeOrigin];
+    }
+    [_dynamicBackgroundScrollView setContentOffset:pointOffset];
+    
+    //use custom background is available
+    if (_customBlurredBackground) {
+        [_dynamicBackgroundScrollView setBackgroundColor:[UIColor colorWithPatternImage:_customBlurredBackground]];
+    }else{
+        [self refreshBackground];
+    }
 }
 
 #pragma mark Background Image
@@ -110,7 +149,14 @@
 //in case the view is reused and the frame is changed, this function is to be called
 - (void)resetRelativeOrigin
 {
-    _relativeOrigin = [self reversePoint:[self combinePoint:self.frame.origin withPoint:self.superview.frame.origin]];
+    //this is not always the correct origin, so watch out
+    //this function attemps to calculate where exactly this view situated on the screen
+    //it iterates until there is no more
+    _relativeOrigin = self.frame.origin;
+    UIView *parentView = self;
+    while ((parentView = parentView.superview)) {
+        _relativeOrigin = [BTBlurredView combinePoint:parentView.frame.origin withPoint:_relativeOrigin];
+    }
 }
 
 #pragma mark Movement
@@ -120,8 +166,7 @@
         return;
     }
     
-    //invert point and adjust relative frame
-    pointOffset = [self reversePoint:[self combinePoint:pointOffset withPoint:_relativeOrigin]];
+    pointOffset = [BTBlurredView combinePoint:[BTBlurredView reversePoint:pointOffset] withPoint:_relativeOrigin];
     [_dynamicBackgroundScrollView setContentOffset:pointOffset];
 }
 
@@ -140,6 +185,28 @@
     }
 }
 
+//Just in case someone decided to move from one form to another, not recommended for use
+- (void)setIsStaticOnly:(BOOL)isStaticOnly
+{
+    if (isStaticOnly == _isStaticOnly) {
+        return;
+    }
+    _isStaticOnly = isStaticOnly;
+    
+    if (_isStaticOnly) {
+        _backgroundScrollView = nil;
+    }else if(!_backgroundScrollView){
+        //if it is not static and has not been assigned, search through superview until finds scrollview or set to nil
+        UIView *parentView = self;
+        while ((parentView = parentView.superview)) {
+            if ([parentView isKindOfClass:[UIScrollView class]]) {
+                _backgroundScrollView = (UIScrollView *)parentView;
+                break;
+            }
+        }
+    }
+}
+
 //this overwrite allows the background to scroll even with UIView animate
 - (void)setFrame:(CGRect)frame
 {
@@ -148,13 +215,21 @@
     [self resetRelativeOrigin];
     
     //since scrollables will have to keep track of its superview offset
-    CGPoint pointOffset = [self reversePoint:_relativeOrigin];
-    if ([self.superview isKindOfClass:[UIScrollView class]]) {
-        UIScrollView *superScrollView = (UIScrollView *)self.superview;
-        pointOffset = [self combinePoint:[self reversePoint:superScrollView.contentOffset] withPoint:pointOffset];
+    CGPoint pointOffset = _relativeOrigin;
+    if (_backgroundScrollView) {
+        pointOffset = [BTBlurredView combinePoint:[BTBlurredView reversePoint:_backgroundScrollView.contentOffset] withPoint:pointOffset];
     }
     [_dynamicBackgroundScrollView setContentOffset:pointOffset];
 
+}
+
++ (UIImage *)grabScreenFromView:(UIView *)view
+{
+    UIGraphicsBeginImageContextWithOptions([UIScreen mainScreen].bounds.size, YES, 0.0f);
+    [view drawViewHierarchyInRect:[UIScreen mainScreen].bounds afterScreenUpdates:YES];
+    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return image;
 }
 
 #pragma mark - Internal functions
@@ -192,12 +267,12 @@
     [self viewDidMoveToPointOffset:parentScrollView.contentOffset];
 }
 
-- (CGPoint)combinePoint:(CGPoint)point1 withPoint:(CGPoint)point2
++ (CGPoint)combinePoint:(CGPoint)point1 withPoint:(CGPoint)point2
 {
     return CGPointMake(point1.x + point2.x, point1.y + point2.y);
 }
 
-- (CGPoint)reversePoint:(CGPoint)point
++ (CGPoint)reversePoint:(CGPoint)point
 {
     return CGPointMake(-point.x, -point.y);
 }
@@ -212,8 +287,8 @@
         return YES;
     }
 
-    CGFloat originX = -_relativeOrigin.x - offset.x;
-    CGFloat originY = -_relativeOrigin.y - offset.y;
+    CGFloat originX = _relativeOrigin.x - offset.x;
+    CGFloat originY = _relativeOrigin.y - offset.y;
     
     //check left
     if (originX + self.frame.size.width < 0) {
