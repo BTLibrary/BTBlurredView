@@ -170,6 +170,8 @@
     [_dynamicBackgroundScrollView setContentOffset:pointOffset];
 }
 
+#pragma mark Setters
+
 - (void)setShouldObserveScroll:(BOOL)shouldObserveScroll
 {
     //as to not have more than 1 observer
@@ -207,6 +209,19 @@
     }
 }
 
+//user will expect the background to show up, thus taking care of some UI house keeping
+- (void)setCustomBlurredBackground:(UIImage *)customBlurredBackground
+{
+    _customBlurredBackground = customBlurredBackground;
+    
+    //in case nil, we just grab the current background
+    if (_customBlurredBackground) {
+        [self refreshBackground];
+    }else{
+        [_dynamicBackgroundScrollView setBackgroundColor:[UIColor colorWithPatternImage:_customBlurredBackground]];
+    }
+}
+
 //this overwrite allows the background to scroll even with UIView animate
 - (void)setFrame:(CGRect)frame
 {
@@ -220,9 +235,9 @@
         pointOffset = [BTBlurredView combinePoint:[BTBlurredView reversePoint:_backgroundScrollView.contentOffset] withPoint:pointOffset];
     }
     [_dynamicBackgroundScrollView setContentOffset:pointOffset];
-
 }
 
+#pragma mark - Global
 + (UIImage *)grabScreenFromView:(UIView *)view
 {
     UIGraphicsBeginImageContextWithOptions([UIScreen mainScreen].bounds.size, YES, 0.0f);
@@ -231,6 +246,17 @@
     UIGraphicsEndImageContext();
     return image;
 }
+
++ (CGPoint)combinePoint:(CGPoint)point1 withPoint:(CGPoint)point2
+{
+    return CGPointMake(point1.x + point2.x, point1.y + point2.y);
+}
+
++ (CGPoint)reversePoint:(CGPoint)point
+{
+    return CGPointMake(-point.x, -point.y);
+}
+
 
 #pragma mark - Internal functions
 - (UIImage *)blurImage:(UIImage *)image
@@ -265,16 +291,6 @@
 {
     UIScrollView *parentScrollView = notification.object;
     [self viewDidMoveToPointOffset:parentScrollView.contentOffset];
-}
-
-+ (CGPoint)combinePoint:(CGPoint)point1 withPoint:(CGPoint)point2
-{
-    return CGPointMake(point1.x + point2.x, point1.y + point2.y);
-}
-
-+ (CGPoint)reversePoint:(CGPoint)point
-{
-    return CGPointMake(-point.x, -point.y);
 }
 
 //this method is crude and may not work at all times
