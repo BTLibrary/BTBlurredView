@@ -23,7 +23,7 @@ The view is a subclass of a UIView. It has a scrollView (X) that is not user int
 6. Live - Make sure when you scroll background, do an update to the view by calling (If the view is static, set `isStaticOnly` to `YES`) 
 	6a. scroll - `(void)viewDidMoveToPointOffset:(CGPoint)pointOffset  `
 	6b. Alernatively, create an observer by setting `shouldObserveScroll` to `YES` and send notification `PARENT_SCROLL_NOTIFICATION` with the new contentOffset
-7. change background - `(void)refreshBackground` (Alternatively you can assign your own flavour with `customBlurredBackground`)
+7. change background - `(void)refreshBackground` (Alternatively you can assign your own flavour with the delegate `(UIImage *)customBackgroundForBlurredView:(BTBlurredView *)blurredView`)
 
 
 Please view example project to get the idea of how to implement. 
