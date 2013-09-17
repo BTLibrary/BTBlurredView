@@ -30,9 +30,6 @@ typedef enum {
 //background scrollview to mimic the "live" blur
 @property (strong, nonatomic) UIScrollView *dynamicBackgroundScrollView;
 
-//in case many view shares the same background, you can set this image to that background and it will not refreshes the image.
-@property (strong, nonatomic) UIImage *customBlurredBackground;
-
 //this is defualt to NO, to enable observer, just set to YES
 @property (assign, nonatomic) BOOL shouldObserveScroll;
 
@@ -64,7 +61,7 @@ typedef enum {
 
 //if you ever need a screen grab for any number of reasons
 //this will captures everything and the size of the device's bound
-+ (UIImage *)grabScreenFromView:(UIView *)view;
++ (UIImage *)grabScreenFromBackgroundView:(UIView *)backgroundView;
 
 + (CGPoint)combinePoint:(CGPoint)point1 withPoint:(CGPoint)point2;
 + (CGPoint)reversePoint:(CGPoint)point;
@@ -75,5 +72,8 @@ typedef enum {
 
 @protocol BTBlurredViewDelegate <NSObject>
 @optional
+//by assigning an image to this, the image will be re-blurred and will be used as the background
+- (UIImage *)customBackgroundForBlurredView:(BTBlurredView *)blurredView;
+//this allows you to use different blur on your screenshot
 - (UIImage *)blurImageForBlurredView:(BTBlurredView *)blurredView image:(UIImage *)image;
 @end

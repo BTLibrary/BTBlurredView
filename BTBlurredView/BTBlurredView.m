@@ -77,11 +77,7 @@
     [_dynamicBackgroundScrollView setContentOffset:pointOffset];
     
     //use custom background is available
-    if (_customBlurredBackground) {
-        [_dynamicBackgroundScrollView setBackgroundColor:[UIColor colorWithPatternImage:_customBlurredBackground]];
-    }else{
-        [self refreshBackground];
-    }
+    [self refreshBackground];
 }
 
 #pragma mark Background Image
@@ -89,9 +85,14 @@
 - (void)refreshBackground
 {
     //grab background
-    UIImage *screenShotImage = [self screenShotImage];
+    UIImage *backgroundImage;
+    if (_delegate && [_delegate respondsToSelector:@selector(customBackgroundForBlurredView:)]){
+        backgroundImage = [_delegate customBackgroundForBlurredView:self];
+    }else{
+        backgroundImage = [self screenShotImage];
+    }
     
-    [self refreshBackgroundWithSpecificBackgroundImage:screenShotImage];
+    [self refreshBackgroundWithSpecificBackgroundImage:backgroundImage];
 }
 
 - (void)refreshBackgroundWithSpecificBackgroundImage:(UIImage *)backgroundImage
@@ -110,9 +111,14 @@
 - (void)refreshBackgroundWithAnimationCode:(AnimationCode)animationCode duration:(CGFloat)duration
 {
     //grab background
-    UIImage *screenShotImage = [self screenShotImage];
+    UIImage *backgroundImage;
+    if (_delegate && [_delegate respondsToSelector:@selector(customBackgroundForBlurredView:)]){
+        backgroundImage = [_delegate customBackgroundForBlurredView:self];
+    }else{
+        backgroundImage = [self screenShotImage];
+    }
     
-    [self refreshBackgroundWithAnimationCode:animationCode duration:duration withSpecificBackgroundImage:screenShotImage];
+    [self refreshBackgroundWithAnimationCode:animationCode duration:duration withSpecificBackgroundImage:backgroundImage];
 }
 
 - (void)refreshBackgroundWithAnimationCode:(AnimationCode)animationCode duration:(CGFloat)duration withSpecificBackgroundImage:(UIImage *)backgroundImage
@@ -209,19 +215,6 @@
     }
 }
 
-//user will expect the background to show up, thus taking care of some UI house keeping
-- (void)setCustomBlurredBackground:(UIImage *)customBlurredBackground
-{
-    _customBlurredBackground = customBlurredBackground;
-    
-    //in case nil, we just grab the current background
-    if (_customBlurredBackground) {
-        [self refreshBackground];
-    }else{
-        [_dynamicBackgroundScrollView setBackgroundColor:[UIColor colorWithPatternImage:_customBlurredBackground]];
-    }
-}
-
 //this overwrite allows the background to scroll even with UIView animate
 - (void)setFrame:(CGRect)frame
 {
@@ -234,14 +227,15 @@
     if (_backgroundScrollView) {
         pointOffset = [BTBlurredView combinePoint:[BTBlurredView reversePoint:_backgroundScrollView.contentOffset] withPoint:pointOffset];
     }
+    [_dynamicBackgroundScrollView setFrame:CGRectOffset(frame, -frame.origin.x, -frame.origin.y)];
     [_dynamicBackgroundScrollView setContentOffset:pointOffset];
 }
 
 #pragma mark - Global
-+ (UIImage *)grabScreenFromView:(UIView *)view
++ (UIImage *)grabScreenFromBackgroundView:(UIView *)backgroundView
 {
-    UIGraphicsBeginImageContextWithOptions([UIScreen mainScreen].bounds.size, YES, 0.0f);
-    [view drawViewHierarchyInRect:[UIScreen mainScreen].bounds afterScreenUpdates:YES];
+    UIGraphicsBeginImageContextWithOptions(backgroundView.bounds.size, YES, 0.0f);
+    [backgroundView drawViewHierarchyInRect:backgroundView.bounds afterScreenUpdates:YES];
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
     return image;
@@ -276,10 +270,7 @@
     //remove itself, if it is in the way
     [self setAlpha:0];
     
-    UIGraphicsBeginImageContextWithOptions(_backgroundView.bounds.size, YES, 0.0f);
-    [_backgroundView drawViewHierarchyInRect:_backgroundView.bounds afterScreenUpdates:YES];
-    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
+    UIImage *image = [BTBlurredView grabScreenFromBackgroundView:_backgroundView];
     
     //put itself back
     [self setAlpha:1];
@@ -325,14 +316,5 @@
     
     return YES;
 }
-
-/*
-// Only override drawRect: if you perform custom drawing.
-// An empty implementation adversely affects performance during animation.
-- (void)drawRect:(CGRect)rect
-{
-    // Drawing code
-}
-*/
 
 @end

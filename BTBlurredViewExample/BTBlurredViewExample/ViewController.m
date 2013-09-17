@@ -111,6 +111,6 @@
 - (UIImage *)blurImageForBlurredView:(BTBlurredView *)blurredView image:(UIImage *)image
 {
     //if you like to mess around with the effect, can be done on the fly, or inside the view itself
-    return [image applyBlurWithRadius:3 tintColor:[UIColor colorWithWhite:1.0 alpha:0.4] saturationDeltaFactor:1 maskImage:nil];[image applyLightEffect];
+    return /*[image applyBlurWithRadius:3 tintColor:[UIColor colorWithWhite:1.0 alpha:0.4] saturationDeltaFactor:1 maskImage:nil];*/[image applyLightEffect];
 }
 @end
