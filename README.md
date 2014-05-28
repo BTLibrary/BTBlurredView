@@ -1,5 +1,8 @@
 BTBlurredView
 =============
+
+![sample](/Gifs/blurview.gif)
+
 This is a view for you to either subclass or use as-is. The view comes loaded with the ability to:
 
 1. Generate screen grab (ignoring itself)
